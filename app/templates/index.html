@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>OpenAI Text-To-Speech API</title>
+    <style>
+        body {
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+			width: 800px; /* 设置宽度 */
+            height: 800px; /* 设置高度 */
+        }
+        h1 {
+            text-align: center;
+            font-size: 20px; /* 字体大小 */
+            color: #f44336; /* 字体颜色 */
+            font-family: 'Microsoft YaHei', sans-serif; /* 字体 */
+            font-weight: bold; /* 字体粗细 */
+        }
+        form {
+            display: grid;
+            grid-gap: 10px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input[type="password"],
+        textarea,
+        select {
+            width: 80%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            background-color: #f44336;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            text-transform: uppercase;
+            border-radius: 5px;
+            cursor: pointer;
+			width: auto; /* 自动宽度 */
+        }
+		
+		/* 多行翻译样式 */
+        .translation-group {
+            margin-bottom: 10px;
+        }
+
+        /* 记住API密钥的样式 */
+        .remember-api-key {
+            display: flex;
+            align-items: center;
+        }
+		
+        button:hover {
+            background-color: #ff6659;
+        }
+        .error {
+            color: red;
+        }
+        
+		.footer {
+            text-align: center;
+            font-size: 12px;
+            font-family: 'Microsoft YaHei', sans-serif;
+            color: grey;
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+        }
+		
+		/* 中文及其英文翻译的样式 */
+        .chinese {
+            font-size: 14px; /* 假设中文使用14号字体 */
+        }
+        .english-translation {
+            font-size: 12px; /* 英文翻译使用小一号字体 */
+            color: #666; /* 灰色字体 */
+			margin-bottom: 0;
+            line-height: 1.2; /* 调整行高 */
+        }
+		/* 新增样式：语音生成提示 */
+        .voice-generated {
+            text-align: center;
+            color: green;
+            font-size: 16px;
+            margin-top: 10px;
+            opacity: 1;
+            transition: opacity 2s ease-out; /* 渐变动画 */
+        }
+
+        /* 隐藏时的样式 */
+        .voice-generated.hide {
+            opacity: 0;
+        }
+		
+		/* 新增样式：播放器和下载按钮的容器 */
+        .audio-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+		
+		audio {
+            width: 80%; /* 调整播放器宽度 */
+            margin-top: 0; /* 移除原有的顶部边距 */
+        }
+		
+		/* 调整下载链接样式 */
+        .download-link {
+            padding: 10px 20px; /* 适当的填充 */
+            background-color: #f44336; /* 背景颜色 */
+            color: white; /* 文字颜色 */
+            text-decoration: none; /* 移除下划线 */
+            border-radius: 5px; /* 圆角 */
+        }
+		/* 下载按钮样式调整 */
+        .download-link {
+            margin-left: 20px; /* 左边距增加，使按钮离播放器稍远一点 */
+            /* 其他样式保持不变 */
+        }
+
+        /* 加载图标样式 */
+        .loader {
+            border: 5px solid #f3f3f3; /* Light grey */
+            border-top: 5px solid #f44336; /* 使用指定的颜色 */
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 2s linear infinite;
+            display: none; /* 默认不显示 */
+            margin: auto; /* 水平居中 */
+        }
+
+        /* 加载动画 */
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>OpenAI Text-To-Speech API</h1>
+	
+        <form method="POST">
+            <div class="translation-group">
+                <label for="api_key">请输入您的OpenAI API密钥</label>
+                <p class="english-translation">Please enter your OpenAI API key:</p>
+                <input type="password" id="api_key" name="api_key" value="{{ api_key }}" required>
+            </div>
+
+            <div class="remember-api-key">
+                <input type="checkbox" id="remember_api_key" name="remember_api_key" {{ remember }}>
+                <label for="remember_api_key">记住API密钥 Remember API</label>
+            </div>
+
+            <div class="translation-group">
+                <button type="submit" name="clear_api_key" value="true">消除API Clear API</button>
+            </div>
+
+            <div class="translation-group">
+                <label for="text">请输入您要转化成语音的文字</label>
+                <p class="english-translation">Please enter the text you want to convert to speech:</p>
+                <textarea id="text" name="text">{{ text }}</textarea>
+            </div>
+
+            <div class="translation-group">
+                <label for="voice">请选择您要使用的音色</label>
+                <p class="english-translation">Please select the voice you want to use:</p>
+                <select id="voice" name="voice">
+                    <option value="alloy" {% if selected_voice == 'alloy' %} selected {% endif %}>alloy</option>
+                    <option value="echo" {% if selected_voice == 'echo' %} selected {% endif %}>echo</option>
+                    <option value="fable" {% if selected_voice == 'fable' %} selected {% endif %}>fable</option>
+                    <option value="onyx" {% if selected_voice == 'onyx' %} selected {% endif %}>onyx</option>
+                    <option value="nova" {% if selected_voice == 'nova' %} selected {% endif %}>nova</option>
+                    <option value="shimmer" {% if selected_voice == 'shimmer' %} selected {% endif %}>shimmer</option>
+                </select>
+            </div>
+
+            <div class="translation-group">
+                <button type="submit">生成  Generate</button>
+            </div>
+        </form>
+
+        {% if error_message %}
+            <p class="error">{{ error_message }}</p>
+        {% endif %}
+
+        {% if speech_file_path %}
+            <div class="audio-container">
+                <audio controls autoplay>
+                    <source src="{{ url_for('static', filename='voices/' + speech_file_path) }}" type="audio/mpeg">
+                    您的浏览器不支持音频元素 Your browser does not support the audio element.
+                </audio>
+                <a href="{{ url_for('static', filename='voices/' + speech_file_path) }}" class="download-link" download>下载</a>
+            </div>
+            <p class="voice-generated" id="voice-generated-msg">语音已生成 Voice generated</p>
+        {% endif %}
+		<!-- 加载图标 -->
+        <div class="loader" id="loader"></div>
+    </div>
+    <script>
+        // 当页面加载完成后执行
+        window.onload = function() {
+            var audioPlayer = document.querySelector('audio');
+            if (audioPlayer) {
+                audioPlayer.play();
+            }
+
+            // 设置提示信息渐进消失
+            var message = document.getElementById('voice-generated-msg');
+            if (message) {
+                setTimeout(function() {
+                    message.classList.add('hide'); // 添加隐藏样式类
+                }, 3000); // 3秒后开始隐藏
+            }
+        };
+		// 当点击生成按钮时显示加载图标
+        document.querySelector('form').addEventListener('submit', function() {
+            document.getElementById('loader').style.display = 'block';
+        });
+    </script>
+    <div class="footer">
+        Developed by Tommy
+    </div>
+</body>
+</html>
